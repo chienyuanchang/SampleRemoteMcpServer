@@ -11,4 +11,6 @@ public sealed class GreetingTools
     {
         return "Hello " + username + " from GreetingTool!";
     }
+    [McpServerTool, Description("Echoes in reverse the message sent by the client.")]
+    public static string ReverseEcho(string message) => new string(message.Reverse().ToArray());
 }
