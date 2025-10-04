@@ -1,0 +1,13 @@
+# Ignore build outputs
+bin/
+obj/
+
+# Ignore user-specific settings
+*.user
+*.rsuser
+
+# Ignore IDE cache/settings
+.vs/
+
+# Optional: ignore secrets/config overrides
+appsettings.Development.json
