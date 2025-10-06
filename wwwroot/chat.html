@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>MCP Chat</title>
+  <style>
+    body { font-family: sans-serif; margin: 2rem; }
+    #chat { border: 1px solid #ccc; padding: 1rem; height: 400px; overflow-y: auto; }
+    .msg { margin: 0.3rem 0; }
+    .user { color: blue; }
+    .server { color: green; }
+  </style>
+</head>
+<body>
+  <h2>MCP Chat</h2>
+  <div id="chat"></div>
+  <input id="input" placeholder="Type your message..." style="width:80%;" />
+  <button id="send">Send</button>
+
+  <script>
+    const chat = document.getElementById("chat");
+    const input = document.getElementById("input");
+    const send = document.getElementById("send");
+
+    function addMsg(text, cls) {
+      const div = document.createElement("div");
+      div.className = `msg ${cls}`;
+      div.textContent = text;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    // SSE connection for streamable responses
+    const eventSource = new EventSource("/sse");
+
+    eventSource.addEventListener("message", (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.params?.chunk) {
+          addMsg(data.params.chunk, "server");
+        } else if (data.result?.done) {
+          addMsg("✅ Stream finished.", "server");
+        }
+      } catch (e) {
+        addMsg(event.data, "server");
+      }
+    });
+
+    send.addEventListener("click", async () => {
+      const text = input.value.trim();
+      if (!text) return;
+      addMsg("You: " + text, "user");
+      input.value = "";
+
+      // Send request to /messages endpoint
+      const body = {
+        jsonrpc: "2.0",
+        id: crypto.randomUUID(),
+        method: "tools/execute",
+        params: {
+          name: "StreamMessages",  // name of your MCP tool
+          arguments: { count: 5 }  // example arguments
+        }
+      };
+
+      await fetch("/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+    });
+  </script>
+</body>
+</html>

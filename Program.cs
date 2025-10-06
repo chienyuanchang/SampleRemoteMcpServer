@@ -18,4 +18,7 @@ app.MapGet("/health", () => "Hello MCP Server");  // use /health instead of /
 // map the MCP endpoints
 app.MapMcp();   // this hooks up the /sse and /messages paths
 
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 app.Run();
