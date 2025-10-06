@@ -1,36 +1,112 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>ChatHub Test</title>
+    <meta charset="UTF-8">
+    <title>ChatHub + GPT + MCP</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        input { margin: 5px; padding: 5px; }
+        button { padding: 5px 10px; }
+        ul { list-style: none; padding-left: 0; max-height: 300px; overflow-y: auto; }
+        li { margin-bottom: 5px; }
+    </style>
 </head>
 <body>
     <h1>ChatHub Test</h1>
+    <input type="text" id="sessionName" placeholder="Enter session name" style="margin-bottom:5px;">
+    <button onclick="startSession()">Start Session</button>
+    <div id="sessionIdDisplay" style="margin-bottom:10px;color:#555;font-size:0.95em;"></div>
     <input type="text" id="user" placeholder="Username">
     <input type="text" id="message" placeholder="Message">
     <button onclick="sendMessage()">Send</button>
     <ul id="messages"></ul>
 
     <script>
-        const connection = new signalR.HubConnectionBuilder()
-            .withUrl("/chatHub")
-            .build();
+        // 1️⃣ Connect to SSE to get the real sessionId from MCP (after user input)
+        let sessionId = null;
+        let connection = null;
+        let sseSource = null;
+        function startSession() {
+            const sessionName = document.getElementById("sessionName").value;
+            if (!sessionName) {
+                alert("Please enter a session name.");
+                return;
+            }
 
-        connection.on("ReceiveMessage", (user, message) => {
-            const li = document.createElement("li");
-            li.textContent = `${user}: ${message}`;
-            document.getElementById("messages").appendChild(li);
-        });
+            sseSource = new EventSource(`http://localhost:5251/sse?sessionId=${encodeURIComponent(sessionName)}`);
 
-        connection.start()
-            .then(() => console.log("Connected to ChatHub!"))
-            .catch(err => console.error(err.toString()));
+            sseSource.addEventListener("endpoint", function(event) {
+                const messagesUl = document.getElementById("messages");
+                const li = document.createElement("li");
+                li.textContent = `SSE event 'endpoint' raw data: ${event.data}`;
+                messagesUl.appendChild(li);
+                messagesUl.scrollTop = messagesUl.scrollHeight;
 
+                // Extract real sessionId from SSE endpoint
+                const match = event.data.match(/sessionId=([A-Za-z0-9_\-]+)/);
+                if (match) {
+                    sessionId = match[1];
+                    console.log("Received sessionId from SSE:", sessionId);
+
+                    // Show in chat
+                    const li2 = document.createElement("li");
+                    li2.textContent = `Extracted sessionId: ${sessionId}`;
+                    messagesUl.appendChild(li2);
+                    messagesUl.scrollTop = messagesUl.scrollHeight;
+
+                    startSignalR();
+                }
+            });
+
+            // Listen for tool results (from MCP)
+            sseSource.addEventListener("tool_result", function(event) {
+                const messagesUl = document.getElementById("messages");
+                const li = document.createElement("li");
+                li.textContent = `MCP Bot (tool_result): ${event.data}`;
+                messagesUl.appendChild(li);
+                messagesUl.scrollTop = messagesUl.scrollHeight;
+            });
+
+            // Optional: catch-all for any other SSE events
+            sseSource.addEventListener("message", function(event) {
+                const messagesUl = document.getElementById("messages");
+                const li = document.createElement("li");
+                li.textContent = `SSE event 'message': ${event.data}`;
+                messagesUl.appendChild(li);
+                messagesUl.scrollTop = messagesUl.scrollHeight;
+            });
+        }
+
+        // 2️⃣ Connect to SignalR ChatHub with sessionId (after SSE)
+        function startSignalR() {
+            connection = new signalR.HubConnectionBuilder()
+                .withUrl(`http://localhost:5251/chatHub?sessionId=${sessionId}`)
+                .configureLogging(signalR.LogLevel.Information)
+                .build();
+
+            connection.on("ReceiveMessage", (user, message) => {
+                const li = document.createElement("li");
+                li.textContent = `${user}: ${message}`;
+                const messagesUl = document.getElementById("messages");
+                messagesUl.appendChild(li);
+                messagesUl.scrollTop = messagesUl.scrollHeight;
+            });
+
+            connection.start()
+                .then(() => console.log("Connected to ChatHub with sessionId:", sessionId))
+                .catch(err => console.error("Connection error:", err.toString()));
+        }
+
+        // 3️⃣ Send a message (wait for sessionId)
         function sendMessage() {
-            const user = document.getElementById("user").value;
+            if (!sessionId || !connection) return;
+            const user = document.getElementById("user").value || "Anonymous";
             const message = document.getElementById("message").value;
-            connection.invoke("SendMessage", user, message)
-                .catch(err => console.error(err.toString()));
+            if (!message) return;
+            connection.invoke("SendMessage", user, message, sessionId)
+                .catch(err => console.error("SendMessage error:", err.toString()));
+            document.getElementById("message").value = "";
         }
     </script>
 </body>

@@ -1,8 +1,11 @@
+using DotNetEnv;
 using ModelContextProtocol.AspNetCore;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
 
 var builder = WebApplication.CreateBuilder(args);
+
+Env.Load();
 
 builder.Services
     .AddMcpServer()
@@ -12,6 +15,9 @@ builder.Services
 
 // Add SignalR services
 builder.Services.AddSignalR();
+
+// Add HttpClient support
+builder.Services.AddHttpClient();
 
 var app = builder.Build();
 
