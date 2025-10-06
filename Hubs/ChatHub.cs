@@ -15,33 +15,22 @@ namespace SampleRemoteMcpServer.Hubs
             _httpClient = httpClientFactory.CreateClient();
         }
 
-        public async Task SendMessage(string user, string message, string sessionId)
+        public async Task SendMessage(string user, string message, string sessionId, string toolList)
         {
-            // 1️⃣ Use provided sessionId directly
+            // Use provided sessionId directly
             if (string.IsNullOrEmpty(sessionId))
             {
                 await Clients.Caller.SendAsync("ReceiveMessage", "MCP Bot", "No sessionId provided.");
                 return;
             }
 
-            // 2️⃣ Fetch MCP tool list (fire-and-forget; actual list comes via SSE)
-            var toolsPayload = new
-            {
-                jsonrpc = "2.0",
-                method = "tools/list",
-                @params = new { },
-                id = 1
-            };
-            await _httpClient.PostAsJsonAsync($"http://localhost:5251/message?sessionId={sessionId}", toolsPayload);
 
-            // 3️⃣ GPT decides whether to call a tool or reply normally
+            // GPT decides whether to call a tool or reply normally
             var gptPrompt = $@"
         You are an assistant. Decide if a tool call is needed.
         User: ""{user}""
         Message: ""{message}""
-        Available tools: 
-        - reverse_echo (requires {{""message"":""string""}})
-        - echo (requires {{""username"":""string""}})
+        Available tools: ""{toolList}""
         Reply ONLY in JSON: 
         - If tool is needed: {{""tool"":""tool_name"",""args"":{{}}}}
         - If no tool needed: {{""tool"":null,""reply"":""Your text reply to user""}}";
