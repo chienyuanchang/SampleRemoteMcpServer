@@ -1,4 +1,4 @@
-# Start the server
+# Start the Server
 Under this project folder `SampleRemoteMpcServer`
 Start the server
 ```
