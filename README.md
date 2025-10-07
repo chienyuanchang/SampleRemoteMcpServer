@@ -1,3 +1,14 @@
+# SampleRemoteMcpServer
+
+## Introduction
+SampleRemoteMcpServer is a sample implementation of a Model Context Protocol (MCP) server built with .NET. It demonstrates how to expose tools and endpoints for communication between clients and the server using HTTP and Server-Sent Events (SSE). 
+
+The purpose of this project is to:
+- Showcase how to build and run an MCP server using .NET.
+- Demonstrate integration with VS Code and the MCP extension.
+- Provide sample endpoints and tools for client-server interaction.
+- Serve as a starting point for developers building their own MCP-compatible servers.
+
 # Start the Server
 Under this project folder `SampleRemoteMpcServer`
 Start the server
