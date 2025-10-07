@@ -9,5 +9,8 @@ obj/
 # Ignore IDE cache/settings
 .vs/
 
+# Ignore .env
+.env
+
 # Optional: ignore secrets/config overrides
 appsettings.Development.json

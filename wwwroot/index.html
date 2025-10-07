@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ChatHub + GPT + MCP</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        input { margin: 5px; padding: 5px; }
+        button { padding: 5px 10px; }
+        ul { list-style: none; padding-left: 0; max-height: 300px; overflow-y: auto; }
+        li { margin-bottom: 5px; }
+        #infoBox {
+            margin-top: 10px;
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background: #f9f9f9;
+            font-size: 0.9em;
+        }
+        #sessionIdDisplay, #toolListDisplay {
+            margin-bottom: 6px;
+            word-break: break-all;
+        }
+        #sessionIdDisplay strong, #toolListDisplay strong {
+            color: #333;
+        }
+        #messages {
+        list-style: none;
+        padding: 10px;
+        margin: 0;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        background: #fefefe;
+        flex-grow: 1; /* expand to fill remaining space */
+        overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>ChatHub Test</h1>
+    <input type="text" id="sessionName" placeholder="Enter session name" style="margin-bottom:5px;">
+    <button onclick="startSession()">Start Session</button>
+
+    <div id="infoBox">
+        <div id="sessionIdDisplay"><strong>Session ID:</strong> <span id="sessionIdValue">—</span></div>
+        <div id="toolListDisplay"><strong>Tool List:</strong> <span id="toolListValue">—</span></div>
+    </div>
+
+    <input type="text" id="user" placeholder="Username">
+    <input type="text" id="message" placeholder="Message">
+    <button onclick="sendMessage()">Send</button>
+
+    <ul id="messages"></ul>
+
+    <script>
+        let sessionId = null;
+        let connection = null;
+        let sseSource = null;
+        let toolList = null;
+
+        function startSession() {
+            const sessionName = document.getElementById("sessionName").value;
+            if (!sessionName) {
+                alert("Please enter a session name.");
+                return;
+            }
+
+            // Connect to SSE
+            sseSource = new EventSource(`http://localhost:5251/sse?sessionId=${encodeURIComponent(sessionName)}`);
+
+            // SSE: endpoint → extract real sessionId
+            sseSource.addEventListener("endpoint", function(event) {
+                const messagesUl = document.getElementById("messages");
+                const li = document.createElement("li");
+                messagesUl.appendChild(li);
+                messagesUl.scrollTop = messagesUl.scrollHeight;
+
+                const match = event.data.match(/sessionId=([A-Za-z0-9_\-]+)/);
+                if (match) {
+                    sessionId = match[1];
+                    console.log("Extracted sessionId from SSE:", sessionId);
+                    sessionIdValue.textContent = sessionId;
+
+                    const liStart = document.createElement("li");
+                    liStart.innerHTML = `<strong>Starting session with name:</strong> ${sessionName}<br><strong>Created sessionId:</strong> ${sessionId}`;
+                    messagesUl.appendChild(liStart);
+                    messagesUl.scrollTop = messagesUl.scrollHeight;
+
+                    const liTools = document.createElement("li");
+                    liTools.innerHTML = `<strong>Checking avilable tools...</strong>`;
+                    messagesUl.appendChild(liTools);
+                    messagesUl.scrollTop = messagesUl.scrollHeight;
+                    // Trigger tools/list request (via POST)
+                    fetch(`http://localhost:5251/message?sessionId=${sessionId}`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ jsonrpc: "2.0", method: "tools/list", id: 1 })
+                    }).catch(err => console.error("Error requesting tools list:", err));
+
+                    startSignalR();
+                }
+            });
+
+            // SSE: listen for tool results or messages
+            sseSource.addEventListener("message", function(event) {
+                const messagesUl = document.getElementById("messages");
+                const li = document.createElement("li");
+                li.innerHTML = `<strong>SSE 'message':</strong> ${event.data}`;
+                messagesUl.appendChild(li);
+                messagesUl.scrollTop = messagesUl.scrollHeight;
+
+                // Capture the tool list directly from SSE message (no parsing)
+                if (!toolList) {
+                    toolList = event.data; // store the whole raw message
+                    document.getElementById("toolListValue").textContent = toolList;
+                }
+            });
+        }
+
+        function startSignalR() {
+            connection = new signalR.HubConnectionBuilder()
+                .withUrl(`http://localhost:5251/chatHub?sessionId=${sessionId}`)
+                .configureLogging(signalR.LogLevel.Information)
+                .build();
+
+            connection.on("ReceiveMessage", (user, message) => {
+                const li = document.createElement("li");
+                li.innerHTML = `<strong>${user}:</strong> ${message}`;
+                const messagesUl = document.getElementById("messages");
+                messagesUl.appendChild(li);
+                messagesUl.scrollTop = messagesUl.scrollHeight;
+            });
+
+            connection.start()
+                .then(() => console.log("Connected to ChatHub with sessionId:", sessionId))
+                .catch(err => console.error("SignalR connection error:", err.toString()));
+        }
+
+        function sendMessage() {
+            if (!sessionId || !connection) return;
+            const user = document.getElementById("user").value || "Anonymous";
+            const message = document.getElementById("message").value;
+            if (!message) return;
+
+            connection.invoke("SendMessage", user, message, sessionId, toolList)
+                .catch(err => console.error("SendMessage error:", err.toString()));
+
+            document.getElementById("message").value = "";
+        }
+    </script>
+</body>
+</html>
