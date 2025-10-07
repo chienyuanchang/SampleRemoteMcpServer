@@ -35,7 +35,7 @@ namespace SampleRemoteMcpServer.Hubs
         - If tool is needed: {{""tool"":""tool_name"",""args"":{{}}}}
         - If no tool needed: {{""tool"":null,""reply"":""Your text reply to user""}}";
 
-
+            await Clients.Caller.SendAsync("ReceiveMessage", "MCP Bot", "Processing your message...");
             var gptResponse = await CallGptAzureAsync(gptPrompt);
             Console.WriteLine("GPT Response: " + gptResponse);
 
