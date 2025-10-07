@@ -1,17 +1,23 @@
-1. Under this project folder SampleRemoteMpcServer
-    Start the server
-    ```
-    dotnet run
-    ```
+# Start the server
+Under this project folder `SampleRemoteMpcServer`
+Start the server
+```
+dotnet run
+```
 
-2. Go to `http://localhost:5251/sse?sessionId=<string>` Page
+# Interact with MCP Server
+## Option 1 with UI
+Go to http://localhost:5251/index.html
+
+## Option 2 with Bash 
+1. Go to `http://localhost:5251/sse?sessionId=<string>` Page
     Will see 
     ```
     event: endpoint
     data: /message?sessionId=<sessionId>
     ```
 
-3. Use the `sessionId` to POST and can see the result on `http://localhost:5251/sse?sessionId=<string>` Page
+2. Use the `sessionId` to POST and can see the result on `http://localhost:5251/sse?sessionId=<string>` Page
     - List tools
         ```bash
         curl -X POST "http://localhost:5251/message?sessionId=<sessionId>" \
