@@ -60,15 +60,15 @@ Go to http://localhost:5251/index.html
 
 ## Option 3 with Github Copliot in VS code
 1. Use Ctrl+Shift+P to open VS Code’s command palette and select `> MCP: Add Server...`.  
-    ![mcp_add_server](Images\readme\mcp_add_server.png)
+    ![mcp_add_server](Images/readme/mcp_add_server.png)
 2. Next select `HTTP (HTTP or Server-Sent Events)`.  
-    ![select_http](Images\readme\select_http.png)
+    ![select_http](Images/readme/select_http.png)
 3. Enter `http://localhost:5251/` as sever url.  
-    ![input_url](Images\readme\input_url.png)
+    ![input_url](Images/readme/input_url.png)
 4. Enter a custom Server ID or use the generated ID  
-    ![enter_server_id](Images\readme\enter_server_id.png)
+    ![enter_server_id](Images/readme/enter_server_id.png)
 5. Pick Workspace.  
-    ![pick_workspace](Images\readme\pick_workspace.png)
+    ![pick_workspace](Images/readme/pick_workspace.png)
 6. MCP configs would be added into `settings.json`.
     ```json
         "mcp": {
@@ -80,7 +80,7 @@ Go to http://localhost:5251/index.html
     }
     ```
 7. Open VS Code Copilot with Agent mode  
-    ![agent_mode](Images\readme\agent_mode.png)
+    ![agent_mode](Images/readme/agent_mode.png)
 8. Check the toolbox icon and can find this MCP server we just set up  
-    ![toolbox_icon](Images\readme\toolbox_icon.png)
-    ![mcp_server_in_toolbox](Images\readme\mcp_server_in_toolbox.png)
+    ![toolbox_icon](Images/readme/toolbox_icon.png)
+    ![mcp_server_in_toolbox](Images/readme/mcp_server_in_toolbox.png)
